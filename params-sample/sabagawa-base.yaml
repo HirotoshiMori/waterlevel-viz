@@ -1,0 +1,61 @@
+# 佐波川共通パラメータ（グラフレイアウト・観測諸元など）
+# 年別ケース (sabagawa-2022.yaml 等) とマージして使用する
+
+# ノートブック実行・図化の設定（waterlevel_viz.ipynb で読み込み）
+run_params:
+  # config_files: ノートブックで指定。未指定ならフォルダ内の全ファイルを処理
+  # config_files: ["sabagawa-2022.yaml"]  # 指定したファイルのみ
+  interactive_delete: false     # 削除可能ファイル表示後の確認・削除
+  use_cached_artifacts: false   # true: artifacts から読み図化のみ（高速）
+
+filter_params:
+  use_median_filter: false      # 図化時に堤体内水位に median フィルタを適用
+  median_window: 5              # odd 推奨
+  use_sg_filter: false         # 図化時に Savitzky-Golay フィルタを適用（scipy 必要）
+  sg_window: 11                 # odd、sg_poly より大きく
+  sg_poly: 3
+  save_both_filter_figures: false  # フィルタ有効時に適用前（*-unfiltered.png）と適用後の両方を保存
+
+paths:
+  base_dir: "./"
+  data_folder: "./data/sabagawa"
+  output_dir: "./output"
+  module_path: "./src"
+
+figure:
+  width: 15
+  height: 5
+  font_size: 12
+
+# --- OYO堤体内水位ノートブック用 ---
+obs_params:
+  RWL: 1   # 河川水位 0:OFF, 1:ON
+  RF: 1    # 降雨 0:OFF, 1:ON
+  GWL: 1   # 堤体内水位 0:OFF, 1:ON
+
+graph_params:
+  miny: 10   # 縦軸（水位）の最低値
+  maxy: 17   # 縦軸（水位）の最高値
+  rain_miny: 0  # 降雨グラフの縦軸最小値（下端）。null なら自動
+  rain_maxy: 50  # 降雨グラフの縦軸最大値（上端）。null なら自動
+
+rwl_params:
+  point: ["7.8k", "8.0k"]
+  obs_elev: 20.404  # 零点高 [m]
+  slide: [-9.34, -8.88]
+
+gwl_params:
+  parts:
+    - "7.8k front"
+    - "7.8k shoulder"
+    - "7.8k slope"
+    - "7.8k toe"
+    - "8.0k front"
+    - "8.0k shoulder"
+    - "8.0k slope"
+    - "8.0k toe"
+    - "balo"
+    - "8.0k shoulder"
+  SNs: [4855566, 4856964, 4856965, 4856970, 4856968, 4856966, 4856967, 4856969, 4857561, 4860639]
+  gw_elevs: [12.258, 12.283, 12.248, 12.427, 12.867, 12.813, 12.824, 12.904, 0.0, 0.0]
+  ND: null

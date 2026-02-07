@@ -1,0 +1,64 @@
+# ===== Colab 不要・ローカル用（GitHub で追跡しない） =====
+context.md
+create_venv.sh
+pyproject.toml
+uv.lock
+
+# ===== Params（params-sample をコピーして params としてユーザーが編集するため追跡しない） =====
+params/
+
+# ===== Data (Colab/学生は各自で用意 or アップロード) =====
+data/
+
+# ===== Output =====
+output/
+
+# ===== Jupyter / Google Colab =====
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+*_executed.ipynb
+*_test.ipynb
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+*.egg-info/
+*.egg
+dist/
+build/
+*.so
+
+# ===== Virtual environment / uv =====
+.venv/
+venv/
+env/
+ENV/
+
+# ===== Test / Lint =====
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ===== OS =====
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# ===== IDE / Editor =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===== Misc =====
+.env
+.env.*
+*.log

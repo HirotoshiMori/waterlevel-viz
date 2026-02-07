@@ -1,0 +1,5 @@
+# 佐波川 2022 年ケース（sabagawa-base.yaml とマージして使用）
+
+period:
+  start_date: "2022-06-01"
+  end_date: "2022-09-30"
