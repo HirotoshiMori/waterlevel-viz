@@ -1,8 +1,5 @@
 # ===== Colab 不要・ローカル用（GitHub で追跡しない） =====
 context.md
-create_venv.sh
-pyproject.toml
-uv.lock
 
 # ===== Params（params-sample をコピーして params としてユーザーが編集するため追跡しない） =====
 params/
