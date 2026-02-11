@@ -80,6 +80,10 @@ def bootstrap(config_files: list[str] | None = None) -> tuple[RunConfig, list[Pa
     paths = _cfg0["paths"]
     base_dir = paths["base_dir"]
     module_path = paths["module_path"]
+    # Colab 等で cwd が waterlevel_analysis のときは params の ./src が存在しないため環境変数で上書き
+    env_src = os.environ.get("WATERLEVEL_VIZ_SRC")
+    if env_src and os.path.isdir(env_src):
+        module_path = env_src
 
     if not os.path.isdir(base_dir):
         raise FileNotFoundError(f"指定されたディレクトリは存在しません: {base_dir}")
