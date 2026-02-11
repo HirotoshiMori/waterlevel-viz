@@ -39,7 +39,12 @@ def _resolve_project_paths() -> tuple[Path, Path]:
             break
     else:
         raise FileNotFoundError("params-sample または params フォルダが見つかりません")
-    src_path = Path("src") if Path("src").exists() else Path("../src")
+    # Colab 等で cwd が data/params/output 専用フォルダのときは環境変数で src を指定可能
+    env_src = os.environ.get("WATERLEVEL_VIZ_SRC")
+    if env_src and Path(env_src).exists():
+        src_path = Path(env_src).resolve()
+    else:
+        src_path = Path("src") if Path("src").exists() else Path("../src")
     if not src_path.exists():
         raise FileNotFoundError("src フォルダが見つかりません")
     return params_dir, src_path
