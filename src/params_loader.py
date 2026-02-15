@@ -12,8 +12,8 @@ import yaml
 
 
 def load_base_config(params_dir: Path) -> dict[str, Any]:
-    """params_dir 内の sabagawa-base.yaml を読み込み、辞書で返す。無ければ空辞書。"""
-    base_path = params_dir / "sabagawa-base.yaml"
+    """base.yaml を読み、辞書で返す。無ければ空辞書。"""
+    base_path = params_dir / "base.yaml"
     if not base_path.exists():
         return {}
     with open(base_path, encoding="utf-8") as f:
@@ -40,7 +40,7 @@ def load_params_with_base(
 ) -> dict[str, Any]:
     """
     ケース用 YAML を読み、sabagawa-* の場合は base とディープマージして返す。
-    base_cfg が None のときは params_dir から sabagawa-base.yaml を読む（params_dir 必須）。
+    base_cfg が None のときは params_dir から base.yaml を読む（params_dir 必須）。
     """
     params_path = Path(params_path)
     with open(params_path, encoding="utf-8") as f:
@@ -71,7 +71,7 @@ def resolve_params_list(
         files = sorted(
             list(params_dir.glob("*.yaml")) + list(params_dir.glob("*.yml"))
         )
-        out = [p for p in files if p.name != "sabagawa-base.yaml"]
+        out = [p for p in files if p.name != "base.yaml"]
         if not out:
             raise FileNotFoundError(
                 f"{params_dir} 内に .yaml / .yml がありません"

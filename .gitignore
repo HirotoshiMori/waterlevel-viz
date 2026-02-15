@@ -13,6 +13,9 @@ data/
 # ===== Output =====
 output/
 
+# ===== Docs（リポジトリでは追跡しない） =====
+docs/
+
 # ===== Jupyter / Google Colab =====
 .ipynb_checkpoints/
 */.ipynb_checkpoints/

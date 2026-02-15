@@ -148,10 +148,30 @@ def run(
         data_folder = paths["data_folder"]
 
         fig_cfg = case_cfg.get("figure", {})
+        ratio = fig_cfg.get("graph_size_ratio")
+        base_w = fig_cfg.get("base_width")
+        if ratio and len(ratio) >= 2 and base_w is not None:
+            w_inch = float(base_w)
+            figsize = (w_inch, w_inch * float(ratio[1]) / float(ratio[0]))
+        else:
+            figsize = (fig_cfg.get("width", 15), fig_cfg.get("height", 4))
+        font_cfg = fig_cfg.get("font") or {}
+        default_font = font_cfg.get("size") if isinstance(font_cfg, dict) else fig_cfg.get("font_size", 12)
+        def _font(key: str):
+            if not isinstance(font_cfg, dict):
+                return default_font
+            v = font_cfg.get(key)
+            return default_font if v is None else v
         plt.rcParams.update({
-            "figure.figsize": (fig_cfg.get("width", 15), fig_cfg.get("height", 4)),
-            "font.size": fig_cfg.get("font_size", 12),
-            "lines.linewidth": 1,
+            "figure.figsize": figsize,
+            "figure.dpi": fig_cfg.get("dpi", 100),
+            "font.size": default_font,
+            "legend.fontsize": _font("legend"),
+            "axes.labelsize": _font("axis_label"),
+            "xtick.labelsize": _font("tick"),
+            "ytick.labelsize": _font("tick"),
+            "axes.titlesize": _font("title"),
+            "lines.linewidth": fig_cfg.get("linewidth", 1.5),
         })
 
         out = OutputManager.from_params(str(params_path))
