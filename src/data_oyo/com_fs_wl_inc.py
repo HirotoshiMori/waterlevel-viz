@@ -78,10 +78,9 @@ def _format_overlap_conflict_reports(deletable, conflicts, data_label="データ
     return "\n".join(lines) if lines else None
 
 
-def proc_wl_rf_files(folder_path, report_overlaps_conflicts=True, interactive_delete=False, verbose=True):
+def proc_wl_rf_files(folder_path, report_overlaps_conflicts=True, verbose=True):
     """指定したフォルダ内の.datファイルを読み込んで結合したdataframeを返す関数。
     report_overlaps_conflicts=True のとき、重複・衝突を検出して表示する。
-    interactive_delete=True のとき、削除可能ファイル表示後に確認し、了承なら該当ファイルを削除する。
     """
     def read_dat_file(file_path):
         """指定した.datファイルを読み込んでdataframeに変換する関数"""
@@ -123,9 +122,6 @@ def proc_wl_rf_files(folder_path, report_overlaps_conflicts=True, interactive_de
         report = _format_overlap_conflict_reports(deletable, conflicts, label)
         if report:
             print(report)
-        if interactive_delete and deletable:
-            to_remove = list({del_f for del_f, _ in deletable})
-            _confirm_and_delete(folder_path, to_remove, label)
 
     merged_df = merged_df.drop(columns=["_file"], errors="ignore")
     merged_df.set_index("日付", inplace=True)
@@ -210,16 +206,23 @@ def _format_oyo_overlap_conflict_reports(deletable, conflicts):
     return "\n".join(lines) if lines else None
 
 
-def proc_files_oyo(folder_path, parts, SNs, gw_elevs, nd=None, report_overlaps_conflicts=True, interactive_delete=False, verbose=True):
+def proc_files_oyo(folder_path, parts, SNs, gw_elevs, nd=None, report_overlaps_conflicts=True, verbose=True):
     """指定したフォルダ内の.oyoファイルを読み込んで結合したdataframeを返す関数。
     report_overlaps_conflicts=True のとき、重複・衝突を検出して表示する。
-    interactive_delete=True のとき、削除可能ファイル表示後に確認し、了承なら該当ファイルを削除する。
     """
 
     def read_dat_file_oyo(file_path, parts, SNs):
         """指定した.datファイルを読み込んでdataframeに変換する関数"""
-        with open(file_path, 'r', encoding='cp932') as f:
-            lines = f.readlines()
+        for enc in ("utf-8", "cp932"):
+            try:
+                with open(file_path, "r", encoding=enc) as f:
+                    lines = f.readlines()
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            with open(file_path, "r", encoding="cp932", errors="replace") as f:
+                lines = f.readlines()
 
         serial_number = int(re.search(r'(\d{7})', lines[12]).group(1))
         try:
@@ -228,7 +231,7 @@ def proc_files_oyo(folder_path, parts, SNs, gw_elevs, nd=None, report_overlaps_c
             raise ValueError(f"No part name found for serial number: {serial_number}")
 
         data_str = ''.join(lines[45:-1])
-        df = pd.read_csv(StringIO(data_str), sep=r'\s+', header=None, encoding='cp932')
+        df = pd.read_csv(StringIO(data_str), sep=r'\s+', header=None)
         time_parts = df.iloc[:, 1].str.split(':')
         new_time_strings = time_parts.str[0] + ':' + time_parts.str[1] + ':00'
         datetime_strings = df.iloc[:, 0] + ' ' + new_time_strings
@@ -250,9 +253,6 @@ def proc_files_oyo(folder_path, parts, SNs, gw_elevs, nd=None, report_overlaps_c
         report = _format_oyo_overlap_conflict_reports(deletable, conflicts)
         if report:
             print(report)
-        if interactive_delete and deletable:
-            to_remove = list({d["deletable"] for d in deletable})
-            _confirm_and_delete(folder_path, to_remove, "堤体内水位")
 
     merged_df = dfs[0].copy()
     for df in dfs[1:]:
@@ -413,28 +413,22 @@ def proc_files_inc(folder_path, parts, fnames, maint_dates, t_inc_params):
     return final_df, final_df_ftr, final_df_temp
 
 
-def process_data(flag, folder_path, interactive_delete=False, verbose=True):
-    """データ処理を一般化するためのヘルパー関数。
-    interactive_delete=True のとき、削除可能ファイル表示後に確認し、了承なら該当ファイルを削除する。
-    """
+def process_data(flag, folder_path, verbose=True):
+    """データ処理を一般化するためのヘルパー関数。"""
     if flag == 1:
-        merged_df = proc_wl_rf_files(
-            folder_path, interactive_delete=interactive_delete, verbose=verbose
-        )
+        merged_df = proc_wl_rf_files(folder_path, verbose=verbose)
         stacked = proc_wl_rf_df(merged_df)
         return stacked
     return None
 
 
-def process_data_oyo(flag, folder_path, parts, SNs, gw_elevs, ND, interactive_delete=False, verbose=True):
+def process_data_oyo(flag, folder_path, parts, SNs, gw_elevs, ND, verbose=True):
     """データ処理を一般化するためのヘルパー関数。
-    interactive_delete=True のとき、削除可能ファイル表示後に確認し、了承なら該当ファイルを削除する。
     戻り値: (balo 補正済み DataFrame, balo 補正なし DataFrame)。補正なしは図化の waterlevel-*-nobalo.png 用。
     """
     if flag == 1:
         merged_corrected, merged_nobalo = proc_files_oyo(
-            folder_path, parts, SNs, gw_elevs, nd=ND,
-            interactive_delete=interactive_delete, verbose=verbose
+            folder_path, parts, SNs, gw_elevs, nd=ND, verbose=verbose
         )
         return merged_corrected, merged_nobalo
     return None, None

@@ -643,8 +643,16 @@ def proc_files_oyo(folder_path, parts, SNs, gw_elevs, nd=None):
 
     def read_dat_file_oyo(file_path, parts, SNs):
         """指定した.datファイルを読み込んでdataframeに変換する関数"""
-        with open(file_path, 'r', encoding='cp932') as f:
-            lines = f.readlines()
+        for enc in ("utf-8", "cp932"):
+            try:
+                with open(file_path, "r", encoding=enc) as f:
+                    lines = f.readlines()
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            with open(file_path, "r", encoding="cp932", errors="replace") as f:
+                lines = f.readlines()
 
         # シリアルナンバーの抽出
         serial_number = int(re.search(r'(\d{7})', lines[12]).group(1))
@@ -656,7 +664,7 @@ def proc_files_oyo(folder_path, parts, SNs, gw_elevs, nd=None):
             raise ValueError(f"No part name found for serial number: {serial_number}")
 
         data_str = ''.join(lines[45:-1])
-        df = pd.read_csv(StringIO(data_str), sep=r'\s+', header=None, encoding='cp932')
+        df = pd.read_csv(StringIO(data_str), sep=r'\s+', header=None)
         
         # 時間列を取得し、コロンで分割します
         time_parts = df.iloc[:, 1].str.split(':')

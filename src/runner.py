@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 @dataclass
 class RunConfig:
     """実行設定（params-sample から読み込んだもの）"""
-    interactive_delete: bool
     use_cached_artifacts: bool
     use_median_filter: bool
     median_window: int | None
@@ -93,7 +92,6 @@ def bootstrap(config_files: list[str] | None = None) -> tuple[RunConfig, list[Pa
     sys.path.insert(0, os.path.abspath(module_path))
 
     run_config = RunConfig(
-        interactive_delete=rp.get("interactive_delete", False),
         use_cached_artifacts=rp.get("use_cached_artifacts", False),
         use_median_filter=fp.get("use_median_filter", False),
         median_window=fp.get("median_window", 5),
@@ -178,7 +176,20 @@ def run(
         out.start_run()
 
         if shared_data is not None:
-            stacked1, stacked2, stacked3 = shared_data
+            stacked1, stacked2, stacked3_shared = shared_data
+            # groundwater は年ごとにフォルダが分かれているため、ケースごとにその年のデータを読む
+            if stacked3_shared is None:
+                stacked3, _ = process_data_oyo(
+                    obs_params["GWL"],
+                    os.path.join(data_folder, "groundwater", str(start_date.year)),
+                    gwl_params["parts"],
+                    gwl_params["SNs"],
+                    gwl_params["gw_elevs"],
+                    gwl_params["ND"],
+                    verbose=verbose,
+                )
+            else:
+                stacked3 = stacked3_shared
             save_artifacts(out, stacked1, stacked2, stacked3)
         elif cfg.use_cached_artifacts and artifact_cache_available(out):
             stacked1, stacked2, stacked3 = load_artifacts(out)
@@ -187,23 +198,20 @@ def run(
             stacked1 = process_data(
                 obs_params["RWL"],
                 os.path.join(data_folder, "riverlevel"),
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
             stacked2 = process_data(
                 obs_params["RF"],
                 os.path.join(data_folder, "rainfall"),
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
             stacked3, _ = process_data_oyo(
                 obs_params["GWL"],
-                os.path.join(data_folder, "groundwater"),
+                os.path.join(data_folder, "groundwater", str(start_date.year)),
                 gwl_params["parts"],
                 gwl_params["SNs"],
                 gwl_params["gw_elevs"],
                 gwl_params["ND"],
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
             save_artifacts(out, stacked1, stacked2, stacked3)
@@ -252,26 +260,15 @@ def run(
             stacked1 = process_data(
                 obs0["RWL"],
                 os.path.join(data_folder0, "riverlevel"),
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
             stacked2 = process_data(
                 obs0["RF"],
                 os.path.join(data_folder0, "rainfall"),
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
-            stacked3, _ = process_data_oyo(
-                obs0["GWL"],
-                os.path.join(data_folder0, "groundwater"),
-                gwl0["parts"],
-                gwl0["SNs"],
-                gwl0["gw_elevs"],
-                gwl0["ND"],
-                interactive_delete=cfg.interactive_delete,
-                verbose=verbose,
-            )
-            shared_data = (stacked1, stacked2, stacked3)
+            # groundwater は各ケースの年フォルダで読むため共有しない（None を渡し _run_one_case 内で読む）
+            shared_data = (stacked1, stacked2, None)
         for p in params_list:
             _run_one_case(p, shared_data=shared_data)
         print("完了.")
@@ -297,23 +294,20 @@ def run(
             stacked1 = process_data(
                 obs_params["RWL"],
                 os.path.join(cfg.data_folder, "riverlevel"),
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
             stacked2 = process_data(
                 obs_params["RF"],
                 os.path.join(cfg.data_folder, "rainfall"),
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
             stacked3, _ = process_data_oyo(
                 obs_params["GWL"],
-                os.path.join(cfg.data_folder, "groundwater"),
+                os.path.join(cfg.data_folder, "groundwater", str(start_date.year)),
                 gwl_params["parts"],
                 gwl_params["SNs"],
                 gwl_params["gw_elevs"],
                 gwl_params["ND"],
-                interactive_delete=cfg.interactive_delete,
                 verbose=verbose,
             )
             save_artifacts(out, stacked1, stacked2, stacked3)
