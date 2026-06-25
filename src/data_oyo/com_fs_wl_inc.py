@@ -241,6 +241,12 @@ def proc_files_oyo(folder_path, parts, SNs, gw_elevs, nd=None, report_overlaps_c
         df.columns = [part_name] + df.columns[1:].tolist()
         return df
 
+    if not os.path.isdir(folder_path):
+        raise FileNotFoundError(
+            f"堤体内水位フォルダが存在しません: {folder_path}\n"
+            "データは groundwater/ 直下、または groundwater/{{年}}/ に .oyo ファイルを置いてください。"
+        )
+
     dat_files = natsorted([f for f in os.listdir(folder_path) if f.endswith('.oyo')])
     if not dat_files:
         return pd.DataFrame()

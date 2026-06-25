@@ -30,6 +30,26 @@ class RunConfig:
     verbose: bool = False
 
 
+def _resolve_groundwater_folder(data_folder: str, year: int) -> str:
+    """堤体内水位データのフォルダを解決する。
+
+    groundwater/{年}/ があればそちらを、なければ groundwater 直下を使う。
+    """
+    year_path = os.path.join(data_folder, "groundwater", str(year))
+    if os.path.isdir(year_path):
+        return year_path
+    flat_path = os.path.join(data_folder, "groundwater")
+    if os.path.isdir(flat_path):
+        return flat_path
+    raise FileNotFoundError(
+        f"堤体内水位フォルダが見つかりません: {year_path} または {flat_path}"
+    )
+
+
+def _groundwater_uses_year_subfolders(data_folder: str, year: int) -> bool:
+    return os.path.isdir(os.path.join(data_folder, "groundwater", str(year)))
+
+
 def _resolve_project_paths() -> tuple[Path, Path]:
     """params_dir と src のパスを解決する。params-sample 優先、params にフォールバック。"""
     for name in ("params-sample", "params"):
@@ -177,11 +197,11 @@ def run(
 
         if shared_data is not None:
             stacked1, stacked2, stacked3_shared = shared_data
-            # groundwater は年ごとにフォルダが分かれているため、ケースごとにその年のデータを読む
+            # groundwater は年フォルダがあればケースごとに読む。直下配置なら shared_data で共有済み
             if stacked3_shared is None:
                 stacked3, _ = process_data_oyo(
                     obs_params["GWL"],
-                    os.path.join(data_folder, "groundwater", str(start_date.year)),
+                    _resolve_groundwater_folder(data_folder, start_date.year),
                     gwl_params["parts"],
                     gwl_params["SNs"],
                     gwl_params["gw_elevs"],
@@ -207,7 +227,7 @@ def run(
             )
             stacked3, _ = process_data_oyo(
                 obs_params["GWL"],
-                os.path.join(data_folder, "groundwater", str(start_date.year)),
+                _resolve_groundwater_folder(data_folder, start_date.year),
                 gwl_params["parts"],
                 gwl_params["SNs"],
                 gwl_params["gw_elevs"],
@@ -267,8 +287,21 @@ def run(
                 os.path.join(data_folder0, "rainfall"),
                 verbose=verbose,
             )
-            # groundwater は各ケースの年フォルダで読むため共有しない（None を渡し _run_one_case 内で読む）
-            shared_data = (stacked1, stacked2, None)
+            period0 = cfg0["period"]
+            start_date0 = datetime.strptime(period0["start_date"], "%Y-%m-%d")
+            stacked3_shared = None
+            if not _groundwater_uses_year_subfolders(data_folder0, start_date0.year):
+                gwl_folder = _resolve_groundwater_folder(data_folder0, start_date0.year)
+                stacked3_shared, _ = process_data_oyo(
+                    obs0["GWL"],
+                    gwl_folder,
+                    gwl0["parts"],
+                    gwl0["SNs"],
+                    gwl0["gw_elevs"],
+                    gwl0["ND"],
+                    verbose=verbose,
+                )
+            shared_data = (stacked1, stacked2, stacked3_shared)
         for p in params_list:
             _run_one_case(p, shared_data=shared_data)
         print("完了.")
@@ -303,7 +336,7 @@ def run(
             )
             stacked3, _ = process_data_oyo(
                 obs_params["GWL"],
-                os.path.join(cfg.data_folder, "groundwater", str(start_date.year)),
+                _resolve_groundwater_folder(cfg.data_folder, start_date.year),
                 gwl_params["parts"],
                 gwl_params["SNs"],
                 gwl_params["gw_elevs"],
