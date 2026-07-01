@@ -13,6 +13,8 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 
+_DEFAULT_FONT_SIZE = 12.0
+
 
 @dataclass
 class RunConfig:
@@ -50,8 +52,21 @@ def _groundwater_uses_year_subfolders(data_folder: str, year: int) -> bool:
     return os.path.isdir(os.path.join(data_folder, "groundwater", str(year)))
 
 
-def _figure_rcparams(fig_cfg: dict[str, Any]) -> dict[str, Any]:
+def _coerce_font_size(value: Any, fallback: float = _DEFAULT_FONT_SIZE) -> float:
+    """YAML の null や不正値を matplotlib 用の float に正規化する。"""
+    if value is None:
+        return fallback
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _figure_rcparams(fig_cfg: dict[str, Any] | None) -> dict[str, Any]:
     """figure 設定から matplotlib rcParams 用の辞書を組み立てる。"""
+    if not isinstance(fig_cfg, dict):
+        fig_cfg = {}
+
     ratio = fig_cfg.get("graph_size_ratio")
     base_w = fig_cfg.get("base_width")
     if ratio and len(ratio) >= 2 and base_w is not None:
@@ -60,22 +75,18 @@ def _figure_rcparams(fig_cfg: dict[str, Any]) -> dict[str, Any]:
     else:
         figsize = (fig_cfg.get("width", 15), fig_cfg.get("height", 4))
 
-    font_cfg = fig_cfg.get("font") or {}
-    default_font = 12
-    if isinstance(font_cfg, dict):
-        if font_cfg.get("size") is not None:
-            default_font = font_cfg["size"]
-        elif fig_cfg.get("font_size") is not None:
-            default_font = fig_cfg["font_size"]
+    font_cfg = fig_cfg.get("font")
+    if not isinstance(font_cfg, dict):
+        font_cfg = {}
+
+    default_font = _DEFAULT_FONT_SIZE
+    if font_cfg.get("size") is not None:
+        default_font = _coerce_font_size(font_cfg.get("size"))
     elif fig_cfg.get("font_size") is not None:
-        default_font = fig_cfg["font_size"]
+        default_font = _coerce_font_size(fig_cfg.get("font_size"))
 
     def _font(key: str) -> float:
-        if isinstance(font_cfg, dict):
-            v = font_cfg.get(key)
-            if v is not None:
-                return v
-        return default_font
+        return _coerce_font_size(font_cfg.get(key), default_font)
 
     return {
         "figure.figsize": figsize,
@@ -205,7 +216,7 @@ def run(
         offset2 = rwl_params["obs_elev"] + rwl_params["slide"][1]
         data_folder = paths["data_folder"]
 
-        fig_cfg = case_cfg.get("figure", {})
+        fig_cfg = case_cfg.get("figure") or {}
         plt.rcParams.update(_figure_rcparams(fig_cfg))
 
         out = OutputManager.from_params(str(params_path))
