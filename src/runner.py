@@ -50,6 +50,46 @@ def _groundwater_uses_year_subfolders(data_folder: str, year: int) -> bool:
     return os.path.isdir(os.path.join(data_folder, "groundwater", str(year)))
 
 
+def _figure_rcparams(fig_cfg: dict[str, Any]) -> dict[str, Any]:
+    """figure 設定から matplotlib rcParams 用の辞書を組み立てる。"""
+    ratio = fig_cfg.get("graph_size_ratio")
+    base_w = fig_cfg.get("base_width")
+    if ratio and len(ratio) >= 2 and base_w is not None:
+        w_inch = float(base_w)
+        figsize = (w_inch, w_inch * float(ratio[1]) / float(ratio[0]))
+    else:
+        figsize = (fig_cfg.get("width", 15), fig_cfg.get("height", 4))
+
+    font_cfg = fig_cfg.get("font") or {}
+    default_font = 12
+    if isinstance(font_cfg, dict):
+        if font_cfg.get("size") is not None:
+            default_font = font_cfg["size"]
+        elif fig_cfg.get("font_size") is not None:
+            default_font = fig_cfg["font_size"]
+    elif fig_cfg.get("font_size") is not None:
+        default_font = fig_cfg["font_size"]
+
+    def _font(key: str) -> float:
+        if isinstance(font_cfg, dict):
+            v = font_cfg.get(key)
+            if v is not None:
+                return v
+        return default_font
+
+    return {
+        "figure.figsize": figsize,
+        "figure.dpi": fig_cfg.get("dpi", 100),
+        "font.size": default_font,
+        "legend.fontsize": _font("legend"),
+        "axes.labelsize": _font("axis_label"),
+        "xtick.labelsize": _font("tick"),
+        "ytick.labelsize": _font("tick"),
+        "axes.titlesize": _font("title"),
+        "lines.linewidth": fig_cfg.get("linewidth", 1.5),
+    }
+
+
 def _resolve_project_paths() -> tuple[Path, Path]:
     """params_dir と src のパスを解決する。params-sample 優先、params にフォールバック。"""
     for name in ("params-sample", "params"):
@@ -166,31 +206,7 @@ def run(
         data_folder = paths["data_folder"]
 
         fig_cfg = case_cfg.get("figure", {})
-        ratio = fig_cfg.get("graph_size_ratio")
-        base_w = fig_cfg.get("base_width")
-        if ratio and len(ratio) >= 2 and base_w is not None:
-            w_inch = float(base_w)
-            figsize = (w_inch, w_inch * float(ratio[1]) / float(ratio[0]))
-        else:
-            figsize = (fig_cfg.get("width", 15), fig_cfg.get("height", 4))
-        font_cfg = fig_cfg.get("font") or {}
-        default_font = font_cfg.get("size") if isinstance(font_cfg, dict) else fig_cfg.get("font_size", 12)
-        def _font(key: str):
-            if not isinstance(font_cfg, dict):
-                return default_font
-            v = font_cfg.get(key)
-            return default_font if v is None else v
-        plt.rcParams.update({
-            "figure.figsize": figsize,
-            "figure.dpi": fig_cfg.get("dpi", 100),
-            "font.size": default_font,
-            "legend.fontsize": _font("legend"),
-            "axes.labelsize": _font("axis_label"),
-            "xtick.labelsize": _font("tick"),
-            "ytick.labelsize": _font("tick"),
-            "axes.titlesize": _font("title"),
-            "lines.linewidth": fig_cfg.get("linewidth", 1.5),
-        })
+        plt.rcParams.update(_figure_rcparams(fig_cfg))
 
         out = OutputManager.from_params(str(params_path))
         out.start_run()
